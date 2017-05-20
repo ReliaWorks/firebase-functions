@@ -1,5 +1,7 @@
-var functions = require('firebase-functions');
+const functions = require('firebase-functions');
+
 const admin = require('firebase-admin');
+
 admin.initializeApp(functions.config().firebase);
 
 exports.newMessage = functions.database.ref('/conversations/{convId}/{messageId}').onWrite(event => {
@@ -16,24 +18,22 @@ exports.newMessage = functions.database.ref('/conversations/{convId}/{messageId}
 	const {convId} = event.params;
   const senderId = original.user._id;
 
-  return admin.database().ref('/user_profiles/' + original.receiverId + '/notificationToken').once('value').then( snapshot => {
+  return admin.database().ref('/user_profiles/' + original.receiverId + '/notificationToken').once('value').then(snapshot => {
     console.log('key: ', snapshot.key, ' val(): ', snapshot.val());
     console.log('receiverId:', original.receiverId, ' user._id: ', original.user._id, ' name:', original.user.name);
     const payload = {
       notification: {
-          title: 'You have a new message from ' + original.user.name,
-          body: original.text,
-	        sound: 'default',
-	        tag: 'newMessageNotif'
+        title: 'You have a new message from ' + original.user.name,
+        body: original.text,
+        sound: 'default',
+        tag: 'newMessageNotif'
       }
     };
     return admin.messaging().sendToDevice(snapshot.val(), payload, {collapseKey: 'newMessage'});
   });
-
 });
 
 exports.newMatch = functions.database.ref('/user_matches/{uid}/{otherUid}').onWrite(event => {
-
   // Exit when the data is deleted.
   if (!event.data.exists()) {
     return;
@@ -47,17 +47,17 @@ exports.newMatch = functions.database.ref('/user_matches/{uid}/{otherUid}').onWr
       const previous = event.data.previous.val();
       if (previous.matched === false) {
         admin.database().ref('user_profiles/' + uid + '/notificationToken').once('value')
-					.then( snapshot => {
-						const payload = {
-	            notification: {
+					.then(snapshot => {
+            const payload = {
+              notification: {
                 title: 'New connection!',
                 body: original.otherUserName + ' connected with you.',
                 sound: 'default',
-				        tag: 'newMessageNotif'
-	            }
-		        };
+                tag: 'newMessageNotif'
+              }
+            };
             return admin.messaging().sendToDevice(snapshot.val(), payload, {collapseKey: 'newMessage'});
-					})
+					});
         console.log('notification should be send');
       } else {
         console.log('already matched, no need to send notification');
@@ -71,4 +71,4 @@ exports.newMatch = functions.database.ref('/user_matches/{uid}/{otherUid}').onWr
     console.log('matched: false');
     return;
   }
-})
+});
