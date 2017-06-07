@@ -16,14 +16,16 @@ exports.newMessage = functions.database.ref('/conversations/{convId}/{messageId}
 
   const original = event.data.val();
 	const {convId} = event.params;
+  const receiverId = original.otherUserId;
   const senderId = original.user._id;
+  const senderName = original.user.name;
 
-  return admin.database().ref('/user_profiles/' + original.receiverId + '/notificationToken').once('value').then(snapshot => {
+  return admin.database().ref('/user_profiles/' + receiverId + '/notificationToken').once('value').then(snapshot => {
     console.log('key: ', snapshot.key, ' val(): ', snapshot.val());
-    console.log('receiverId:', original.receiverId, ' user._id: ', original.user._id, ' name:', original.user.name);
+    console.log('receiverId:', receiverId, ' user._id: ', senderId, ' name:', senderName);
     const payload = {
       notification: {
-        title: 'You have a new message from ' + original.user.name,
+        title: 'You have a new message from ' + senderName,
         body: original.text,
         sound: 'default',
         tag: 'newMessageNotif'
@@ -32,6 +34,35 @@ exports.newMessage = functions.database.ref('/conversations/{convId}/{messageId}
     return admin.messaging().sendToDevice(snapshot.val(), payload, {collapseKey: 'newMessage'});
   });
 });
+
+// exports.newMessage = functions.database.ref('/conversations/{convId}/{messageId}').onWrite(event => {
+//   // Exit when the data is deleted.
+//   if (!event.data.exists()) {
+//     return;
+//   }
+//   // send notification when data was created firstly.
+//   if (event.data.previous.exists()) {
+//     return;
+//   }
+//
+//   const original = event.data.val();
+// 	const {convId} = event.params;
+//   const senderId = original.user._id;
+//
+//   return admin.database().ref('/user_profiles/' + original.receiverId + '/notificationToken').once('value').then(snapshot => {
+//     console.log('key: ', snapshot.key, ' val(): ', snapshot.val());
+//     console.log('receiverId:', original.receiverId, ' user._id: ', original.user._id, ' name:', original.user.name);
+//     const payload = {
+//       notification: {
+//         title: 'You have a new message from ' + original.user.name,
+//         body: original.text,
+//         sound: 'default',
+//         tag: 'newMessageNotif'
+//       }
+//     };
+//     return admin.messaging().sendToDevice(snapshot.val(), payload, {collapseKey: 'newMessage'});
+//   });
+// });
 
 exports.newMatch = functions.database.ref('/user_matches/{uid}/{otherUid}').onWrite(event => {
   // Exit when the data is deleted.
